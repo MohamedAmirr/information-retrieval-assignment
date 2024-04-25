@@ -14,10 +14,7 @@ import java.io.InputStreamReader;
 import static java.lang.Math.log10;
 import static java.lang.Math.sqrt;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
 import java.io.PrintWriter;
 
 /**
@@ -81,6 +78,52 @@ public class Index5 {
         System.out.println("*** Number of terms = " + index.size());
     }
 
+    //----------------------------------------------------------------------------
+    /*
+    This function gives a unique ID for each word that found in the files,
+    and check for the documents that this word appears in them.
+     */
+    public int indexOneLine(String ln, int fid, int numOfPrevWords) {
+        int flen = 0;
+
+        String[] words = ln.split("\\W+");
+        //   String[] words = ln.replaceAll("(?:[^a-zA-Z0-9 -]|(?<=\\w)-(?!\\S))", " ").toLowerCase().split("\\s+");
+        flen += words.length;
+        for (int i = 0; i < words.length; i++) {
+            words[i] = words[i].toLowerCase();
+            words[i] = stemWord(words[i]);
+            // check to see if the word is not in the dictionary
+            // if not add it
+            if (!index.containsKey(words[i])) {
+                index.put(words[i], new DictEntry());
+            }
+            // add document id to the posting list
+            if (!index.get(words[i]).postingListContains(fid)) {
+                index.get(words[i]).doc_freq += 1; //set doc freq to the number of doc that contain the term
+                if (index.get(words[i]).pList == null) {
+                    index.get(words[i]).pList = new Posting(fid);
+                    index.get(words[i]).last = index.get(words[i]).pList;
+                    index.get(words[i]).last.addPositions(numOfPrevWords + i + 1);
+                } else {
+                    index.get(words[i]).last.next = new Posting(fid);
+                    index.get(words[i]).last = index.get(words[i]).last.next;
+                    index.get(words[i]).last.addPositions(numOfPrevWords + i + 1);
+                }
+            } else {
+                index.get(words[i]).last.dtf += 1;
+                index.get(words[i]).last.addPositions(numOfPrevWords + i + 1);
+            }
+            //set the term_fteq in the collection
+            index.get(words[i]).term_freq += 1;
+            if (words[i].equalsIgnoreCase("lattice")) {
+
+                System.out.println("  <<" + index.get(words[i]).getPosting(1) + ">> " + ln);
+            }
+
+        }
+        return flen;
+    }
+
     //-----------------------------------------------
     /*
     This function gives a unique ID for each file.
@@ -96,7 +139,7 @@ public class Index5 {
                 int flen = 0;
                 while ((ln = file.readLine()) != null) {
                     /// -2- **** complete here ****
-                    flen += indexOneLine(ln, fid);
+                    flen += indexOneLine(ln, fid, flen);
                     ///**** hint   flen +=  ________________(ln, fid);
                 }
                 sources.get(fid).length = flen;
@@ -109,51 +152,82 @@ public class Index5 {
         //   printDictionary();
     }
 
-    //----------------------------------------------------------------------------
-    /*
-    This function gives a unique ID for each word that found in the files,
-    and check for the documents that this word appears in them.
-     */
-    public int indexOneLine(String ln, int fid) {
-        int flen = 0;
+    public int indexBiWord(String bigram, int fileId, int position) {
+        bigram = bigram.toLowerCase();  // Normalize to lowercase
 
-        String[] words = ln.split("\\W+");
-        //   String[] words = ln.replaceAll("(?:[^a-zA-Z0-9 -]|(?<=\\w)-(?!\\S))", " ").toLowerCase().split("\\s+");
-        flen += words.length;
+        // Split the bigram into individual words to check for stop words
+        String[] words = bigram.split("\\W+");
         for (String word : words) {
-            word = word.toLowerCase();
             if (stopWord(word)) {
-                continue;
+                return 0;  // If either word in the bigram is a stop word, skip indexing this bigram
             }
-            word = stemWord(word);
-            // check to see if the word is not in the dictionary
-            // if not add it
-            if (!index.containsKey(word)) {
-                index.put(word, new DictEntry());
-            }
-            // add document id to the posting list
-            if (!index.get(word).postingListContains(fid)) {
-                index.get(word).doc_freq += 1; //set doc freq to the number of doc that contain the term 
-                if (index.get(word).pList == null) {
-                    index.get(word).pList = new Posting(fid);
-                    index.get(word).last = index.get(word).pList;
-                } else {
-                    index.get(word).last.next = new Posting(fid);
-                    index.get(word).last = index.get(word).last.next;
-                }
-            } else {
-                index.get(word).last.dtf += 1;
-            }
-            //set the term_fteq in the collection
-            index.get(word).term_freq += 1;
-            if (word.equalsIgnoreCase("lattice")) {
-
-                System.out.println("  <<" + index.get(word).getPosting(1) + ">> " + ln);
-            }
-
         }
-        return flen;
+
+        // Stemming each word in the bigram
+        String stemmedBigram = "";
+        for (String word : words) {
+            stemmedBigram += stemWord(word) + " ";
+        }
+        stemmedBigram = stemmedBigram.trim();  // Remove trailing space
+
+        // Check if the stemmed bigram is not in the dictionary and add it if absent
+        if (!index.containsKey(stemmedBigram)) {
+            index.put(stemmedBigram, new DictEntry());
+        }
+
+        // Add document id to the posting list
+        if (!index.get(stemmedBigram).postingListContains(fileId)) {
+            index.get(stemmedBigram).doc_freq += 1;  // Increment document frequency
+            if (index.get(stemmedBigram).pList == null) {
+                index.get(stemmedBigram).pList = new Posting(fileId);
+                index.get(stemmedBigram).last = index.get(stemmedBigram).pList;
+            } else {
+                index.get(stemmedBigram).last.next = new Posting(fileId);
+                index.get(stemmedBigram).last = index.get(stemmedBigram).last.next;
+            }
+        } else {
+            index.get(stemmedBigram).last.dtf += 1;  // Increment term frequency in document
+        }
+
+        // Increment total term frequency in the collection
+        index.get(stemmedBigram).term_freq += 1;
+
+        // If the bigram includes a specific word, e.g., "lattice", you can debug or log here
+        if (stemmedBigram.contains("lattice")) {
+            System.out.println("  <<" + index.get(stemmedBigram).getPosting(1) + ">> " + bigram);
+        }
+
+        return 2;  // Return 2 because each bigram is made of two words
     }
+
+    public void buildBiWordIndex(String[] files) {
+        int fid = 0; // File identifier
+        for (String fileName : files) {
+            try (BufferedReader file = new BufferedReader(new FileReader(fileName))) {
+                if (!sources.containsKey(fileName)) {
+                    sources.put(fid, new SourceRecord(fid, fileName, fileName, "notext")); // Assumes SourceRecord manages these details
+                }
+                String ln;
+                String prevWord = null; // Store the previous word for bi-word indexing
+                int flen = 0; // Length of the file in terms of words processed
+                while ((ln = file.readLine()) != null) {
+                    String[] words = ln.split("\\W+"); // Split the line into words
+                    for (int i = 0; i < words.length; i++) {
+                        if (prevWord != null) {
+                            String bigram = prevWord + "_" + words[i];
+                            flen += indexBiWord(bigram, fid, i); // Function to index a bi-word and increment file length by word count
+                        }
+                        prevWord = words[i]; // Update the previous word to the current for the next iteration
+                    }
+                }
+                sources.get(fid).length = flen; // Update the source record with the file length
+            } catch (IOException e) {
+                System.out.println("File " + fileName + " not found. Skip it");
+            }
+            fid++; // Increment file identifier for the next file
+        }
+    }
+
 
     //----------------------------------------------------------------------------
     /*
@@ -170,7 +244,8 @@ public class Index5 {
         return false;
 
     }
-//----------------------------------------------------------------------------  
+
+    //----------------------------------------------------------------------------
     /*
     It returns the root of the passed word.
     form of a word before any inflectional affixes are added
@@ -232,7 +307,12 @@ public class Index5 {
         int len = words.length;
 
         //fix this if word is not in the hash table will crash...
-        Posting posting = index.get(words[0].toLowerCase()).pList;
+        Posting posting = null;
+        try {
+            posting = index.get(words[0].toLowerCase()).pList;
+        } catch (Exception e) {
+            return "not found";
+        }
         int i = 1;
         while (i < len) {
             posting = intersect(posting, index.get(words[i].toLowerCase()).pList);
@@ -243,6 +323,97 @@ public class Index5 {
             result += "\t" + posting.docId + " - " + sources.get(posting.docId).title + " - " + sources.get(posting.docId).length + "\n";
             posting = posting.next;
         }
+        return result;
+    }
+
+    public String searchBiWord(String biWordPhrase) {
+        String result = "";
+        // Normalize and prepare the bi-word phrase for lookup
+        biWordPhrase = biWordPhrase.toLowerCase().replace(" ", "_");
+
+        // Retrieve the posting list for the bi-word directly
+        Posting posting = index.containsKey(biWordPhrase) ? index.get(biWordPhrase).pList : null;
+
+        // If no postings, return an indication such as "No results found."
+        if (posting == null) {
+            return "No results found for '" + biWordPhrase.replace("_", " ") + "'.";
+        }
+
+        // Iterate through the postings and build the result string
+        while (posting != null) {
+            String docTitle = sources.get(posting.docId).title;
+            int docLength = sources.get(posting.docId).length;
+            result += "\t" + posting.docId + " - " + docTitle + " - " + docLength + "\n";
+            posting = posting.next;
+        }
+        return result;
+    }
+
+    public String searchPositional(String positionalPhrase) {
+        String result = "";
+        // Normalize and prepare the bi-word phrase for lookup
+        String[] positionalPhraseList = positionalPhrase.toLowerCase().split(" ");
+
+        List<Posting> postingList = new ArrayList<>();
+        for (String phrase : positionalPhraseList) {
+            if (index.containsKey(phrase)) {
+                postingList.add(index.get(phrase).pList);
+            } else {
+                return "No results found for " + positionalPhrase;
+            }
+        }
+
+        if (!postingList.isEmpty()) {
+            Posting firstPosting = postingList.get(0);
+            while (firstPosting != null) {
+                for (int position : firstPosting.positions) {
+                    boolean found = true;
+                    for (int wordNum = 1; wordNum < postingList.size(); wordNum++) {
+                        Posting currPosting = postingList.get(wordNum);
+
+                        while (currPosting != null && currPosting.docId != firstPosting.docId) {
+                            currPosting = currPosting.next;
+                        }
+
+                        if (currPosting == null) {
+                            found = false;
+                            break;
+                        }
+
+                        if (!currPosting.positions.contains(position + wordNum)) {
+                            found = false;
+                            break;
+                        }
+                    }
+                    if (found) {
+                        String docTitle = sources.get(firstPosting.docId).title;
+                        int docLength = sources.get(firstPosting.docId).length;
+                        result += "\t" + firstPosting.docId + " - " + docTitle + " - " + docLength + "\n";
+                        break;
+                    }
+                }
+                firstPosting = firstPosting.next;
+            }
+        } else {
+            return "No results found for " + positionalPhrase;
+        }
+
+
+        // Retrieve the posting list for the bi-word directly
+//        Posting posting = index.containsKey(positionalPhrase) ? index.get(positionalPhrase).pList : null;
+
+        // If no postings, return an indication such as "No results found."
+//        if (posting == null) {
+//            return "No results found for '" + positionalPhrase.replace("_", " ") + "'.";
+//        }
+
+        // Iterate through the postings and build the result string
+//        while (posting != null) {
+//            String docTitle = sources.get(posting.docId).title;
+//            int docLength = sources.get(posting.docId).length;
+//            result += "\t" + posting.docId + " - " + docTitle + " - " + docLength + "\n";
+//            posting = posting.next;
+//        }
         return result;
     }
 
