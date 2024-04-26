@@ -374,23 +374,6 @@ public class Index5 {
         } else {
             return "No results found for " + positionalPhrase;
         }
-
-
-        // Retrieve the posting list for the bi-word directly
-//        Posting posting = index.containsKey(positionalPhrase) ? index.get(positionalPhrase).pList : null;
-
-        // If no postings, return an indication such as "No results found."
-//        if (posting == null) {
-//            return "No results found for '" + positionalPhrase.replace("_", " ") + "'.";
-//        }
-
-        // Iterate through the postings and build the result string
-//        while (posting != null) {
-//            String docTitle = sources.get(posting.docId).title;
-//            int docLength = sources.get(posting.docId).length;
-//            result += "\t" + posting.docId + " - " + docTitle + " - " + docLength + "\n";
-//            posting = posting.next;
-//        }
         return result;
     }
 
