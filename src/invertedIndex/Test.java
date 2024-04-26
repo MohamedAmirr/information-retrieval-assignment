@@ -3,19 +3,42 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
 package invertedIndex;
-import java.util.Arrays;
-import java.util.HashSet;
+
+import java.util.*;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.Iterator;
-import java.util.Set;
 
 /**
  * @author ehab
  */
 public class Test {
+    public static int countCharacter(String str, char charToCount) {
+        int count = 0;
+        for (int i = 0; i < str.length(); i++) {
+            if (str.charAt(i) == charToCount) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    public static String removeSubstring(String str, int start, int end) {
+        // Check if the start and end indices are valid
+        if (start < 0 || end > str.length() || start > end) {
+            return str; // Return the original string if indices are not valid
+        }
+
+        // Create a StringBuilder object from the string
+        StringBuilder sb = new StringBuilder(str);
+
+        // Remove the substring between start and end indices
+        sb.delete(start, end);
+
+        // Return the modified string
+        return sb.toString();
+    }
 
     public static void main(String[] args) throws IOException {
         Index5 index = new Index5();
@@ -48,27 +71,57 @@ public class Test {
             phrase = in.readLine();
             if (phrase.isEmpty()) break; // Exit on empty input
 
-            // Check if phrase is a bi-word query
-            if (phrase.startsWith("\"") && phrase.endsWith("\"")) {
-                phrase = phrase.substring(1, phrase.length() - 1);
-                System.out.println("Bi-word Model result = \n" + index.searchPositional(phrase));
-            } else if (!phrase.contains("\"")) {
-                // Use existing single word search method
-                System.out.println("Boolean Model result = \n" + index.find_24_01(phrase));
-            } else {
-                int indexOfFirstQoute = phrase.indexOf('\"');
-                int indexOfSecondQoute = phrase.indexOf('\"', indexOfFirstQoute + 1);
-                String biWord = phrase.substring(indexOfFirstQoute,indexOfSecondQoute + 1);
-                phrase = phrase.replace(biWord,"").replace(" ","");
-                biWord = biWord.substring(1, biWord.length() - 1).replace(" ", "_");
-                String[] resOfBiWord = index.searchBiWord(biWord).split("\n");
-                String[] resOfRevertedIndex = index.find_24_01(phrase).split("\n");
-                System.out.println("Boolean Model result = \n");
-                for(String word:resOfBiWord){
-                    if(Arrays.asList(resOfRevertedIndex).contains(word)){
-                        System.out.println(word);
+            List<String> result = new ArrayList<>();
+            if (countCharacter(phrase, '\"') > 1) {
+                while (countCharacter(phrase, '\"') > 1) {
+                    int indexOfFirstQoute = phrase.indexOf('\"');
+                    int indexOfSecondQoute = phrase.indexOf('\"', indexOfFirstQoute + 1);
+                    String wordBetweenQuotations = phrase.substring(indexOfFirstQoute + 1, indexOfSecondQoute);
+                    String[] listOfWords = wordBetweenQuotations.split(" ");
+                    if (listOfWords.length == 2) {
+                        ArrayList<String> resultOfBiWordIndex = new ArrayList<>(Arrays.asList(index.searchBiWord(String.join(" ", listOfWords)).split("\n")));
+                        if (result.isEmpty())
+                            result.addAll(resultOfBiWordIndex);
+                        else {
+                            for (int i = 0; i < result.size(); i++) {
+                                if (!resultOfBiWordIndex.contains(result.get(i))) {
+                                    result.remove(i);
+                                    i--;
+                                }
+                            }
+                        }
+                    } else {
+                        ArrayList<String> resultOfPositionalIndex = new ArrayList<>(Arrays.asList(index.searchPositional(String.join(" ", listOfWords)).split("\n")));
+                        if (result.isEmpty())
+                            result.addAll(resultOfPositionalIndex);
+                        else {
+                            for (int i = 0; i < result.size(); i++) {
+                                if (!resultOfPositionalIndex.contains(result.get(i))) {
+                                    result.remove(i);
+                                    i--;
+                                }
+                            }
+                        }
+                    }
+                    phrase = removeSubstring(phrase, indexOfFirstQoute, indexOfSecondQoute + 1);
+                }
+            }
+            if (phrase.length() > 0) {
+                ArrayList<String> resultOfInvertedIndex = new ArrayList<>(Arrays.asList(index.find_24_01(phrase).split("\n")));
+                if (result.isEmpty())
+                    result.addAll(resultOfInvertedIndex);
+                else {
+                    for (int i = 0; i < result.size(); i++) {
+                        if (!resultOfInvertedIndex.contains(result.get(i))) {
+                            result.remove(i);
+                            i--;
+                        }
                     }
                 }
+            }
+            System.out.println("Boolean Model result = \n");
+            for (String word : result) {
+                System.out.println(word);
             }
         } while (true);
     }

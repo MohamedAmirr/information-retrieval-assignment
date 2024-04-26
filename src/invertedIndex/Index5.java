@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package invertedIndex;
 
 import java.io.BufferedReader;
@@ -9,25 +5,13 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.Writer;
 import java.io.IOException;
-import java.io.InputStreamReader;
-
-import static java.lang.Math.log10;
-import static java.lang.Math.sqrt;
-
 import java.util.*;
-import java.io.PrintWriter;
 
-/**
- * @author ehab
- */
 public class Index5 {
-
-    //--------------------------------------------
     int N = 0;
-    public Map<Integer, SourceRecord> sources;  // store the doc_id and the file name.
+    public Map<Integer, SourceRecord> sources;
 
-    public HashMap<String, DictEntry> index; // THe inverted index
-    //--------------------------------------------
+    public HashMap<String, DictEntry> index;
 
     public Index5() {
         sources = new HashMap<Integer, SourceRecord>();
@@ -49,11 +33,8 @@ public class Index5 {
      [ID1, ID2, ID3, ID4]
      */
     public void printPostingList(Posting p) {
-        // Iterator<Integer> it2 = hset.iterator();
         System.out.print("[");
         while (p != null) {
-            /// -4- **** complete here ****
-            // fix get rid of the last comma
             System.out.print("" + p.docId);
             p = p.next;
             if (p != null)
@@ -80,53 +61,52 @@ public class Index5 {
 
     //----------------------------------------------------------------------------
     /*
-    This function gives a unique ID for each word that found in the files,
-    and check for the documents that this word appears in them.
+    This function links each word in the string 'ln' to the corresponding file using 'fid'.
      */
-    public int indexOneLine(String ln, int fid, int numOfPrevWords) {
+    public int indexOneLine(String ln, int fid, int numOfPrevFileWords) {
         int flen = 0;
 
         String[] words = ln.split("\\W+");
-        //   String[] words = ln.replaceAll("(?:[^a-zA-Z0-9 -]|(?<=\\w)-(?!\\S))", " ").toLowerCase().split("\\s+");
         flen += words.length;
         for (int i = 0; i < words.length; i++) {
             words[i] = words[i].toLowerCase();
+
+            if (stopWord(words[i]))
+                continue;
+
             words[i] = stemWord(words[i]);
-            // check to see if the word is not in the dictionary
-            // if not add it
+
             if (!index.containsKey(words[i])) {
                 index.put(words[i], new DictEntry());
             }
-            // add document id to the posting list
+
             if (!index.get(words[i]).postingListContains(fid)) {
-                index.get(words[i]).doc_freq += 1; //set doc freq to the number of doc that contain the term
+                index.get(words[i]).doc_freq += 1;
                 if (index.get(words[i]).pList == null) {
                     index.get(words[i]).pList = new Posting(fid);
                     index.get(words[i]).last = index.get(words[i]).pList;
-                    index.get(words[i]).last.addPositions(numOfPrevWords + i + 1);
+                    index.get(words[i]).last.addPositions(numOfPrevFileWords + i + 1);
                 } else {
                     index.get(words[i]).last.next = new Posting(fid);
                     index.get(words[i]).last = index.get(words[i]).last.next;
-                    index.get(words[i]).last.addPositions(numOfPrevWords + i + 1);
+                    index.get(words[i]).last.addPositions(numOfPrevFileWords + i + 1);
                 }
             } else {
                 index.get(words[i]).last.dtf += 1;
-                index.get(words[i]).last.addPositions(numOfPrevWords + i + 1);
+                index.get(words[i]).last.addPositions(numOfPrevFileWords + i + 1);
             }
-            //set the term_fteq in the collection
             index.get(words[i]).term_freq += 1;
             if (words[i].equalsIgnoreCase("lattice")) {
-
                 System.out.println("  <<" + index.get(words[i]).getPosting(1) + ">> " + ln);
             }
-
         }
         return flen;
     }
 
     //-----------------------------------------------
     /*
-    This function gives a unique ID for each file.
+    This function gives a unique ID for each file and calls indexOneLine function to
+    index each word to the corresponding file.
      */
     public void buildIndex(String[] files) {  // from disk not from the internet
         int fid = 0;
@@ -138,9 +118,7 @@ public class Index5 {
                 String ln;
                 int flen = 0;
                 while ((ln = file.readLine()) != null) {
-                    /// -2- **** complete here ****
                     flen += indexOneLine(ln, fid, flen);
-                    ///**** hint   flen +=  ________________(ln, fid);
                 }
                 sources.get(fid).length = flen;
 
@@ -152,10 +130,13 @@ public class Index5 {
         //   printDictionary();
     }
 
-    public int indexBiWord(String bigram, int fileId, int position) {
-        bigram = bigram.toLowerCase();  // Normalize to lowercase
+    //-----------------------------------------------
+    /*
+    This function links each two words in the string 'bigram' to the corresponding file using 'fileId'.
+     */
+    public int indexBiWord(String bigram, int fileId) {
+        bigram = bigram.toLowerCase();
 
-        // Split the bigram into individual words to check for stop words
         String[] words = bigram.split("\\W+");
         for (String word : words) {
             if (stopWord(word)) {
@@ -215,7 +196,7 @@ public class Index5 {
                     for (int i = 0; i < words.length; i++) {
                         if (prevWord != null) {
                             String bigram = prevWord + "_" + words[i];
-                            flen += indexBiWord(bigram, fid, i); // Function to index a bi-word and increment file length by word count
+                            flen += indexBiWord(bigram, fid); // Function to index a bi-word and increment file length by word count
                         }
                         prevWord = words[i]; // Update the previous word to the current for the next iteration
                     }
@@ -264,17 +245,10 @@ public class Index5 {
     and gets the IDs that found in both linked lists.
      */
     Posting intersect(Posting pL1, Posting pL2) {
-///****  -1-   complete after each comment ****
-//   INTERSECT ( p1 , p2 )
-//          1  answer ←      {}
         Posting answer = null;
         Posting last = null;
-//      2 while p1  != NIL and p2  != NIL
         while (pL1 != null && pL2 != null) {
-//          3 do if docID ( p 1 ) = docID ( p2 )
             if (pL1.docId == pL2.docId) {
-//          4   then ADD ( answer, docID ( p1 ))
-                // answer.add(pL1.docId);
                 if (answer == null) {
                     answer = new Posting(pL1.docId);
                     last = answer;
@@ -282,19 +256,13 @@ public class Index5 {
                     last.next = new Posting(pL1.docId);
                     last = last.next;
                 }
-//          5       p1 ← next ( p1 )
                 pL1 = pL1.next;
-//          6       p2 ← next ( p2 )
                 pL2 = pL2.next;
-                //          7   else if docID ( p1 ) < docID ( p2 )
             } else if (pL1.docId < pL2.docId)
-//          8        then p1 ← next ( p1 )
                 pL1 = pL1.next;
-//          9        else p2 ← next ( p2 )
             else
                 pL2 = pL2.next;
         }
-//      10 return answer
         return answer;
     }
 
@@ -307,14 +275,18 @@ public class Index5 {
         int len = words.length;
 
         //fix this if word is not in the hash table will crash...
-        Posting posting = null;
-        try {
-            posting = index.get(words[0].toLowerCase()).pList;
-        } catch (Exception e) {
-            return "not found";
+        Posting posting = index.containsKey(words[0]) ? index.get(words[0]).pList : null;
+
+        // If no postings, return an indication such as "No results found."
+        if (posting == null) {
+            return "No results found for '" + words[0];
         }
+
         int i = 1;
         while (i < len) {
+            if (!index.containsKey(words[i])) {
+                return "No results found for '" + words[i];
+            }
             posting = intersect(posting, index.get(words[i].toLowerCase()).pList);
             i++;
         }
@@ -359,7 +331,10 @@ public class Index5 {
             if (index.containsKey(phrase)) {
                 postingList.add(index.get(phrase).pList);
             } else {
-                return "No results found for " + positionalPhrase;
+                if (stopWord(phrase))
+                    postingList.add(null); // null value indicates a stop word to skip it
+                else
+                    return "No results found for " + positionalPhrase;
             }
         }
 
@@ -369,6 +344,8 @@ public class Index5 {
                 for (int position : firstPosting.positions) {
                     boolean found = true;
                     for (int wordNum = 1; wordNum < postingList.size(); wordNum++) {
+                        if (postingList.get(wordNum) == null)
+                            continue;
                         Posting currPosting = postingList.get(wordNum);
 
                         while (currPosting != null && currPosting.docId != firstPosting.docId) {
