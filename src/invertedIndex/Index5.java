@@ -274,7 +274,7 @@ public class Index5 {
     // This function stores the inverted index into a hard disk
     public void store(String storageName) {
         try {
-            String pathToStorage = "/home/mohamed/IdeaProjects/is322_HW_1/tmp11/rl/" + storageName;
+            String pathToStorage = System.getProperty("user.dir") + "\\tmp11\\rl\\" + storageName;
             Writer wr = new FileWriter(pathToStorage);
             for (Map.Entry<Integer, SourceRecord> entry : sources.entrySet()) {
                 System.out.println("Key = " + entry.getKey() + ", Value = " + entry.getValue().URL + ", Value = " + entry.getValue().title + ", Value = " + entry.getValue().text);
@@ -315,7 +315,7 @@ public class Index5 {
     Checks if the passed file name exists.
      */
     public boolean storageFileExists(String storageName) {
-        java.io.File f = new java.io.File("/home/ehab/tmp11/rl/" + storageName);
+        java.io.File f = new java.io.File(System.getProperty("user.dir") + "\\tmp11\\rl\\" + storageName);
         if (f.exists() && !f.isDirectory())
             return true;
         return false;
@@ -328,7 +328,7 @@ public class Index5 {
      */
     public void createStore(String storageName) {
         try {
-            String pathToStorage = "/home/ehab/tmp11/" + storageName;
+            String pathToStorage = System.getProperty("user.dir") + "\\tmp11\\" + storageName;
             Writer wr = new FileWriter(pathToStorage);
             wr.write("end" + "\n");
             wr.close();
@@ -342,7 +342,7 @@ public class Index5 {
     //load index from hard disk into memory
     public HashMap<String, DictEntry> load(String storageName) {
         try {
-            String pathToStorage = "/home/ehab/tmp11/rl/" + storageName;
+            String pathToStorage = System.getProperty("user.dir") + "\\tmp11\\rl\\" + storageName;
             sources = new HashMap<Integer, SourceRecord>();
             index = new HashMap<String, DictEntry>();
             BufferedReader file = new BufferedReader(new FileReader(pathToStorage));

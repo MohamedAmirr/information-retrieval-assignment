@@ -10,16 +10,15 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 
 /**
- *
  * @author ehab
  */
 public class Test {
 
     public static void main(String[] args) throws IOException {
         Index5 index = new Index5();
-        //|**  change it to your collection directory 
-        //|**  in windows "C:\\tmp11\\rl\\collection\\"       
-        String files = "/home/mohamed/IdeaProjects/is322_HW_1/tmp11/rl/collection/";
+        //|**  change it to your collection directory
+        //|**  in windows "C:\\tmp11\\rl\\collection\\"
+        String files = System.getProperty("user.dir") + "\\tmp11\\rl\\collection\\";
 
         File file = new File(files);
         //|** String[] 	list()
